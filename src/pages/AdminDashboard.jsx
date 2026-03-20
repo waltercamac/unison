@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, DollarSign, Users, Award, CalendarDays, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Users, Award, CalendarDays, ArrowUpRight, ArrowDownRight, AlertTriangle, ArrowRight } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0 })
@@ -128,6 +130,26 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium text-primary">Mes actual: {new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' })}</span>
                 </div>
             </div>
+
+            {/* Smart Inventory Alert Widget */}
+            {stockAlerts > 0 && (
+                <div className="animate-in slide-in-from-top-4">
+                    <div className="bg-foreground/5 dark:bg-foreground/30 border border-foreground/30 dark:border-foreground/30/50 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-foreground/10 dark:bg-foreground/50 p-2 rounded-full animate-pulse">
+                                <AlertTriangle className="w-6 h-6 text-foreground dark:text-foreground" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-foreground dark:text-foreground">Riesgo Operativo: Desabastecimiento</h3>
+                                <p className="text-sm text-foreground dark:text-foreground/80">Tienes {stockAlerts} producto(s) en cero o por debajo de su límite de alerta crítica.</p>
+                            </div>
+                        </div>
+                        <Button asChild className="bg-foreground hover:bg-foreground text-white rounded-full">
+                            <Link to="/dashboard/inventory">Reabastecer ahora <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* HIGH-END DAILY CLOSURE */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
