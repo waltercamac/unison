@@ -19,52 +19,85 @@ export default function AdminDashboard() {
 
     const fetchAdminData = async () => {
         setLoading(true)
+        try {
+            // 1. Fetch Inventory Alerts
+            const { data: invData } = await supabase.from('inventory').select('current_stock, minimum_stock')
+            if (invData) {
+                const alerts = invData.filter(i => Number(i.current_stock) <= Number(i.minimum_stock))
+                setStockAlerts(alerts.length)
+            }
 
-        // Fetch ALL financials
-        const { data: ledger } = await supabase
-            .from('financial_ledger')
-            .select('amount, transaction_type, transaction_date')
+            // 2. Fetch Financials
+            const { data: ledger } = await supabase.from('financial_ledger').select('amount, transaction_type, transaction_date')
 
-        let income = 0; let expense = 0;
-        let dailyIncome = 0; let dailyExpense = 0;
-        let monthlyIncome = 0; let monthlyExpense = 0;
+            let income = 0; let expense = 0;
+            let dailyIncome = 0; let dailyExpense = 0;
+            let monthlyIncome = 0; let monthlyExpense = 0;
+            let prevMonthIncome = 0; let prevMonthExpense = 0;
 
-        const now = new Date()
-        const todayStr = now.toISOString().split('T')[0]
-        const thisMonthStr = todayStr.substring(0, 7) // e.g. "2026-03"
+            const now = new Date()
+            const dynamicToday = now.toISOString().split('T')[0]
+            const thisMonthStr = dynamicToday.substring(0, 7)
 
-        if (ledger) {
-            ledger.forEach(tx => {
-                const amt = Number(tx.amount)
-                const isToday = tx.transaction_date.startsWith(todayStr)
-                const isThisMonth = tx.transaction_date.startsWith(thisMonthStr)
+            const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            const prevMonthStr = prevMonthDate.toISOString().substring(0, 7)
+            const prevMonthLabel = prevMonthDate.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+            const thisMonthLabel = now.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
 
-                if (tx.transaction_type === 'income') {
-                    income += amt
-                    if (isToday) dailyIncome += amt
-                    if (isThisMonth) monthlyIncome += amt
-                }
-                if (tx.transaction_type === 'expense') {
-                    expense += amt
-                    if (isToday) dailyExpense += amt
-                    if (isThisMonth) monthlyExpense += amt
-                }
-            })
+            const groupedIncome = {}
+
+            if (ledger) {
+                ledger.forEach(tx => {
+                    const amt = Number(tx.amount) || 0
+                    const txDate = tx.transaction_date || ''
+                    const isToday = txDate.startsWith(dynamicToday)
+                    const isThisMonth = txDate.startsWith(thisMonthStr)
+                    const isPrevMonth = txDate.startsWith(prevMonthStr)
+                    const dateOnly = txDate.includes('T') ? txDate.split('T')[0] : (txDate || '1970-01-01')
+
+                    if (tx.transaction_type === 'income') {
+                        income += amt
+                        if (isToday) dailyIncome += amt
+                        if (isThisMonth) monthlyIncome += amt
+                        if (isPrevMonth) prevMonthIncome += amt
+                        groupedIncome[dateOnly] = (groupedIncome[dateOnly] || 0) + amt
+                    }
+                    if (tx.transaction_type === 'expense') {
+                        expense += amt
+                        if (isToday) dailyExpense += amt
+                        if (isThisMonth) monthlyExpense += amt // Corrected from monthlyIncome
+                        if (isPrevMonth) prevMonthExpense += amt
+                    }
+                })
+            }
+
+            setStats({ income, expense, balance: income - expense })
+            setDailyStats({ income: dailyIncome, expense: dailyExpense, balance: dailyIncome - dailyExpense })
+            setMonthlyStats({ income: monthlyIncome, expense: monthlyExpense, balance: monthlyIncome - monthlyExpense })
+            setPrevMonthStats({ income: prevMonthIncome, expense: prevMonthExpense })
+            setMomComparison([
+                { name: prevMonthLabel, Ingresos: prevMonthIncome, Egresos: prevMonthExpense },
+                { name: thisMonthLabel, Ingresos: monthlyIncome, Egresos: monthlyExpense },
+            ])
+
+            const sortedDates = Object.keys(groupedIncome).sort().slice(-14)
+            setChartData(sortedDates.map(date => ({
+                name: date.split('-')[2] + '/' + date.split('-')[1],
+                Ingresos: groupedIncome[date]
+            })))
+
+            // 3. Fetch clients
+            const { data: clData } = await supabase.from('clients').select('registration_date')
+            if (clData) {
+                setClientsCount(clData.length)
+                const newThisMonth = clData.filter(c => c.registration_date?.startsWith(thisMonthStr)).length
+                setNewClientsThisMonth(newThisMonth)
+            }
+        } catch (err) {
+            console.error("Dashboard error:", err)
+        } finally {
+            setLoading(false)
         }
-
-        setStats({ income, expense, balance: income - expense })
-        setDailyStats({ income: dailyIncome, expense: dailyExpense, balance: dailyIncome - dailyExpense })
-        setMonthlyStats({ income: monthlyIncome, expense: monthlyExpense, balance: monthlyIncome - monthlyExpense })
-
-        // Fetch clients
-        const { data: clData } = await supabase.from('clients').select('registration_date')
-        if (clData) {
-            setClientsCount(clData.length)
-            const newThisMonth = clData.filter(c => c.registration_date?.startsWith(thisMonthStr)).length
-            setNewClientsThisMonth(newThisMonth)
-        }
-
-        setLoading(false)
     }
 
     if (loading) return (
