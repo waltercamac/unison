@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, DollarSign, Users, Award, CalendarDays } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Users, Award, CalendarDays, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts'
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0 })
@@ -12,6 +13,12 @@ export default function AdminDashboard() {
     const [clientsCount, setClientsCount] = useState(0)
     const [newClientsThisMonth, setNewClientsThisMonth] = useState(0)
     const [loading, setLoading] = useState(true)
+
+    // New stats states
+    const [stockAlerts, setStockAlerts] = useState(0)
+    const [prevMonthStats, setPrevMonthStats] = useState({ income: 0, expense: 0 })
+    const [momComparison, setMomComparison] = useState([])
+    const [chartData, setChartData] = useState([])
 
     useEffect(() => {
         fetchAdminData()
