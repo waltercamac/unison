@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { User, Stethoscope, Wallet, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { User, Stethoscope, Wallet, ArrowRight, CheckCircle2, Trash2 } from 'lucide-react'
 
 export default function Clients() {
     const { profile } = useAuth()
