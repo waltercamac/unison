@@ -144,6 +144,21 @@ export default function Clients() {
         }
     }
 
+    const handleDeleteClient = async (clientId, clientName) => {
+        if (!window.confirm(`⚠️ PELIGRO:\n\nEstás a punto de ELIMINAR COMPLETAMENTE a ${clientName} del directorio de pacientes.\n\nEsto borrará irremediablemente:\n- Su Ficha Clínica y Diagnósticos.\n- Sus Tratamientos y Sesiones.\n- Sus Pagos y Registro Financiero.\n\n¿Estás seguro que deseas proceder? Esta acción NO ES REVERSIBLE.`)) return
+
+        try {
+            // El backend supabase debe tener cascadas o habrá errores de FK, asumiendo ON DELETE CASCADE.
+            const { error } = await supabase.from('clients').delete().eq('id', clientId)
+            if (error) throw error
+            alert('✅ Paciente eliminado del directorio existosamente.')
+            fetchClients()
+        } catch (error) {
+            console.error(error)
+            alert("Error al eliminar paciente: " + error.message)
+        }
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             {/* Header */}
@@ -344,9 +359,16 @@ export default function Clients() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-5 text-center">
-                                                <Button size="sm" asChild className="bg-foreground text-secondary hover:bg-foreground/80 hover-scale shadow-md rounded-full px-6 font-bold">
-                                                    <Link to={`/dashboard/clients/${client.id}`}>Ficha 360 &rarr;</Link>
-                                                </Button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Button size="sm" asChild className="bg-foreground text-secondary hover:bg-foreground/80 hover-scale shadow-md rounded-full px-6 font-bold">
+                                                        <Link to={`/dashboard/clients/${client.id}`}>Ficha 360 &rarr;</Link>
+                                                    </Button>
+                                                    {profile?.role === 'admin' && (
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClient(client.id, `${client.first_name} ${client.last_name}`)} className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

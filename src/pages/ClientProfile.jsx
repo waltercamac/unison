@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, User, Activity, CreditCard, PlusCircle, CheckCircle, FileText, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, User, Activity, CreditCard, PlusCircle, CheckCircle, FileText, AlertTriangle, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -154,6 +154,20 @@ export default function ClientProfile() {
             alert("⚠️ ALERTA CAJA: " + err.message)
         } finally {
             setProcessing(false)
+        }
+    }
+
+    const handleDeletePayment = async (paymentId) => {
+        if (!window.confirm("⚠️ ADVERTENCIA CRÍTICA: Estás a punto de anular un registro financiero. Esto afectará el Saldo Deudor del paciente. ¿Proceder?")) return
+
+        try {
+            const { error } = await supabase.from('client_payments').delete().eq('id', paymentId)
+            if (error) throw error
+            alert('✅ Pago anulado del sistema exitosamente.')
+            await fetchClientData() // Refresh list
+        } catch (error) {
+            console.error(error)
+            alert("Error al anular el pago: " + error.message)
         }
     }
 
@@ -427,7 +441,14 @@ export default function ClientProfile() {
                                                     {pay.payment_method}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-black text-accent text-right text-lg">+S/ {pay.amount.toFixed(2)}</td>
+                                            <td className="px-6 py-4 font-black text-accent text-right text-lg flex justify-end gap-4 items-center">
+                                                <span>+S/ {pay.amount.toFixed(2)}</span>
+                                                {profile?.role === 'admin' && (
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeletePayment(pay.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </td>
                                         </tr>
                                     )
                                 })}

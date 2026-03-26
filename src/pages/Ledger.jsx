@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowDownRight, ArrowUpRight, Search, Filter, Download, PlusCircle, LayoutGrid } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Search, Filter, Download, PlusCircle, LayoutGrid, Trash2 } from 'lucide-react'
 
 export default function Ledger() {
     const { profile } = useAuth()
@@ -68,6 +68,20 @@ export default function Ledger() {
             alert('Error registrando transacción.')
         }
         setIsSubmitting(false)
+    }
+
+    const handleDeleteTransaction = async (txId) => {
+        if (!window.confirm("⚠️ ALERTA CAJA: ¿Anular y borrar esta transacción del libro mayor? Esta acción alterará el cálculo de liquidez actual a nivel global.")) return
+
+        try {
+            const { error } = await supabase.from('financial_ledger').delete().eq('id', txId)
+            if (error) throw error
+            alert('✅ Registro eliminado de caja.')
+            fetchLedger()
+        } catch (error) {
+            console.error(error)
+            alert("Error al anular transacción: " + error.message)
+        }
     }
 
     const handleExportCSV = () => {
@@ -243,8 +257,17 @@ export default function Ledger() {
                                                     <span>S/ {tx.amount.toFixed(2)}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-right text-xs text-muted-foreground uppercase tracking-wider">
-                                                {tx.profiles?.full_name || 'Sistema Auto'}
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-3">
+                                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                                                        {tx.profiles?.full_name || 'Sistema Auto'}
+                                                    </span>
+                                                    {profile?.role === 'admin' && (
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTransaction(tx.id)} className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0">
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
